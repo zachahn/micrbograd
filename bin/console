@@ -2,10 +2,34 @@
 # frozen_string_literal: true
 
 require "bundler/setup"
-require "micrbograd"
+require_relative "../lib/micrbograd"
 
-# You can add fixtures and/or initialization code here to make experimenting
-# with your gem easier. You can also use a different console, if you like.
+include Micrbograd
+
+xs = [
+  Value.with(2.0, 3.0, -1.0),
+  Value.with(3.0, -1.0, 0.5),
+  Value.with(0.5, 1.0, 1.0),
+  Value.with(1.0, 1.0, -1.0)
+]
+
+desired = Value.with(1.0, -1.0, -1.0, 1.0)
+n = MLP.new(3, [4, 4, 1])
+
+100.times do |i|
+  # forward pass
+  ypredictions = xs.map { |x| n.call(x) } ; nil
+  loss = desired.zip(ypredictions).map { |a, b| (b - a) ** 2 }.reduce(:+) ; nil
+
+  # backward pass
+  n.zero_gradients
+  loss.backpropagate ; nil
+
+  # update
+  n.parameters.each { |parameter| parameter.data += (-0.01 * parameter.gradient) } ; nil
+
+  puts "#{i}: #{loss.data}"
+end
 
 require "irb"
-IRB.start(__FILE__)
+binding.irb
